@@ -11,6 +11,8 @@ to connect to your Tailscale network.
 
 Available in CDK as a TypeScript NPM Package and Python PyPi Package.
 
+Can be used with **ALL AWS Lambda runtimes**(Node, Python, Go, etc.) running on Amazon Linux 2023.
+
 ## Installation
 
 ```bash
@@ -184,6 +186,8 @@ Create a new Key on Tailscale:
 ## Limitations
 - The IP address of the Tailscale target must be used, Domain Name resolution is not set up. This is not too much of a 
   limitation/risk as the IP address of the target server can be changed from the Tailscale Admin Console if need be.
+- The Layer adds about 50MB to the Lambda package size, most of which is the Tailscale binaries.
+- Expect a 2-3 second addition to your cold start time due to the Tailscale process starting up.
 
 ## Implementation Details
 The extension is build using the following steps:
