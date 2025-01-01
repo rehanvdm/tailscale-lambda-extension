@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Clear Jest Cache
-        run: jest --clearCache
+        run: npx jest --clearCache
       - name: release
         run: npx projen release
       - name: Check if version has already been tagged
