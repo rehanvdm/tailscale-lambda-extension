@@ -2,7 +2,7 @@
   "name": "tailscale-lambda-extension",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rehan.vdm4/tailscale-lambda-extension.git"
+    "url": "https://github.com/rehanvdm/tailscale-lambda-extension.git"
   },
   "scripts": {
     "build": "npx projen build",
@@ -17,6 +17,7 @@
     "package": "npx projen package",
     "package-all": "npx projen package-all",
     "package:js": "npx projen package:js",
+    "package:python": "npx projen package:python",
     "post-compile": "npx projen post-compile",
     "post-upgrade": "npx projen post-upgrade",
     "pre-compile": "npx projen pre-compile",
@@ -26,11 +27,12 @@
     "unbump": "npx projen unbump",
     "upgrade": "npx projen upgrade",
     "watch": "npx projen watch",
-    "projen": "npx projen"
+    "projen": "npx projen",
+    "prepare": "if [ \"$CI\" = \"true\" ]; then echo \"CI detected, not running husky\"; else husky; fi"
   },
   "author": {
     "name": "rehanvdm",
-    "email": "rehan.vdm4@gmail.com",
+    "email": "rehan.vdm4+github-tailscale-lambda-extension@gmail.com",
     "organization": false
   },
   "devDependencies": {
@@ -39,12 +41,13 @@
     "@types/node": "^22.10.2",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
-    "aws-cdk-lib": "2.1.0",
+    "aws-cdk-lib": "2.150.0",
     "commit-and-tag-version": "^12",
     "constructs": "10.0.5",
     "eslint": "^9",
     "eslint-import-resolver-typescript": "^3.7.0",
     "eslint-plugin-import": "^2.31.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jest-junit": "^15",
     "jsii": "~5.7.0",
@@ -58,12 +61,16 @@
     "typescript": "^5.7.2"
   },
   "peerDependencies": {
-    "aws-cdk-lib": "^2.1.0",
+    "aws-cdk-lib": "^2.150.0",
     "constructs": "^10.0.5"
   },
   "keywords": [
     "cdk"
   ],
+  "engines": {
+    "node": "~20.*",
+    "npm": "~10.*"
+  },
   "main": "lib/index.js",
   "license": "Apache-2.0",
   "publishConfig": {
@@ -119,7 +126,12 @@
   "stability": "stable",
   "jsii": {
     "outdir": "dist",
-    "targets": {},
+    "targets": {
+      "python": {
+        "distName": "tailscale_lambda_extension",
+        "module": "tailscale_lambda_extension"
+      }
+    },
     "tsc": {
       "outDir": "lib",
       "rootDir": "src"

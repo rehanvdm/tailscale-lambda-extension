@@ -1,0 +1,95 @@
+#!/bin/bash
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+# Original source: https://github.com/aws-samples/aws-lambda-extensions/blob/main/custom-runtime-extension-demo/extensionssrc/extensions/extension1.sh
+# Available packages: https://docs.aws.amazon.com/linux/al2023/ug/al2023-container-image-types.html
+
+set -euo pipefail
+
+OWN_FILENAME="$(basename $0)"
+LAMBDA_EXTENSION_NAME="$OWN_FILENAME" # (external) extension name has to match the filename
+TMPFILE=/tmp/$OWN_FILENAME
+
+# Graceful Shutdown
+_term() {
+  echo "[${LAMBDA_EXTENSION_NAME}] Received SIGTERM"
+  # forward SIGTERM to child procs and exit
+  kill -TERM "$PID" 2>/dev/null
+  echo "[${LAMBDA_EXTENSION_NAME}] Exiting"
+  exit 0
+}
+
+forward_sigterm_and_wait() {
+  trap _term SIGTERM
+  wait "$PID"
+  trap - SIGTERM
+}
+
+
+# Initialization
+# To run any extension processes that need to start before the runtime initializes, run them before the /register
+echo "[${LAMBDA_EXTENSION_NAME}] Initialization"
+# Registration
+# The extension registration also signals to Lambda to start initializing the runtime.
+HEADERS="$(mktemp)"
+echo "[${LAMBDA_EXTENSION_NAME}] Registering at http://${AWS_LAMBDA_RUNTIME_API}/2020-01-01/extension/register"
+curl -sS -LD "$HEADERS" -XPOST "http://${AWS_LAMBDA_RUNTIME_API}/2020-01-01/extension/register" --header "Lambda-Extension-Name: ${LAMBDA_EXTENSION_NAME}" -d "{ \"events\": [\"INVOKE\", \"SHUTDOWN\"]}" > $TMPFILE
+
+RESPONSE=$(<$TMPFILE)
+HEADINFO=$(<$HEADERS)
+# Extract Extension ID from response headers
+EXTENSION_ID=$(grep -Fi Lambda-Extension-Identifier "$HEADERS" | tr -d '[:space:]' | cut -d: -f2)
+echo "[${LAMBDA_EXTENSION_NAME}] Registration response: ${RESPONSE} with EXTENSION_ID $(grep -Fi Lambda-Extension-Identifier "$HEADERS" | tr -d '[:space:]' | cut -d: -f2)"
+
+
+
+
+### CUSTOM CODE
+# Get the Tailscale API Key from the Secrets Manager secret
+RESPONSE=$(curl -sX POST "https://secretsmanager.${AWS_REGION}.amazonaws.com" \
+           --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+           --aws-sigv4 "aws:amz:${AWS_REGION}:secretsmanager" \
+           --header "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+           --header "X-Amz-Target: secretsmanager.GetSecretValue" \
+           --header "Content-Type: application/x-amz-json-1.1" \
+            --data "{
+                \"SecretId\": \"${TS_SECRET_API_KEY}\"
+            }")
+TS_KEY=$(echo "$RESPONSE" | grep -o '"SecretString":"[^"]*"' | sed 's/"SecretString":"\(.*\)"/\1/')
+
+# Start the Tailscale process
+echo "[${LAMBDA_EXTENSION_NAME}] Tailscale process..." 1>&2;
+/opt/extensions/bin/tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --socket=/tmp/tailscale.sock --state=/tmp/tailscale &
+TAILSCALED_PID=$!
+echo "[${LAMBDA_EXTENSION_NAME}] TAILSCALED_PID: ${TAILSCALED_PID}" 1>&2;
+sleep 1 # TODO: Can we remove?
+
+# Tailscale up
+echo "[${LAMBDA_EXTENSION_NAME}] Tailscale up..." 1>&2;
+until /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock up --authkey="${TS_KEY}" --hostname="${TS_HOSTNAME}"
+do
+  sleep 0.1
+done
+sleep 1 # TODO: Can we remove?
+### CUSTOM CODE END
+
+
+
+# Event processing
+# Continuous loop to wait for events from Extensions API
+while true
+do
+  echo "[${LAMBDA_EXTENSION_NAME}] Waiting for event. Get /next event from http://${AWS_LAMBDA_RUNTIME_API}/2020-01-01/extension/event/next"
+
+  # Get an event. The HTTP request will block until one is received
+  curl -sS -L -XGET "http://${AWS_LAMBDA_RUNTIME_API}/2020-01-01/extension/event/next" --header "Lambda-Extension-Identifier: ${EXTENSION_ID}" > $TMPFILE &
+  PID=$!
+  forward_sigterm_and_wait
+
+  EVENT_DATA=$(<$TMPFILE)
+  if [[ $EVENT_DATA == *"SHUTDOWN"* ]]; then
+    echo "[extension: ${LAMBDA_EXTENSION_NAME}] Received SHUTDOWN event. Exiting."  1>&2;
+    exit 0 # Exit if we receive a SHUTDOWN event
+  fi
+
+done
