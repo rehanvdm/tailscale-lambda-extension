@@ -37,7 +37,11 @@ jobs:
         run: npm ci
       - name: Clear Jest Cache
         run: npx jest --clearCache
-      - name: Jes List
+      - name: Jest List
+        run: npx jest --listTests
+      - name: Remove stale snapshots
+        run: find . -type f -name "*.snap" -delete
+      - name: Jest List 2
         run: npx jest --listTests
       - name: release
         run: npx projen release
