@@ -23,7 +23,7 @@ export class TailscaleLambdaExtension extends Construct {
 
     this.layer = new lambda.LayerVersion(scope, 'tailscale-extension', {
       ...props?.options,
-      code: lambda.Code.fromAsset(path.join(__dirname, 'tailscale-extension')),
+      code: lambda.Code.fromAsset(path.join(__dirname, 'tailscale-extension/extensions')),
       compatibleArchitectures: [lambda.Architecture.X86_64],
     });
 
