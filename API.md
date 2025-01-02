@@ -19,7 +19,7 @@ The Lambda function using this layer requires the following Environment Variable
 ```typescript
 import { TailscaleLambdaExtension } from 'tailscale-lambda-extension'
 
-new TailscaleLambdaExtension(scope: Construct, id: string, props: TailscaleLambdaExtensionProps)
+new TailscaleLambdaExtension(scope: Construct, id: string, props?: TailscaleLambdaExtensionProps)
 ```
 
 | **Name** | **Type** | **Description** |
@@ -42,7 +42,7 @@ new TailscaleLambdaExtension(scope: Construct, id: string, props: TailscaleLambd
 
 ---
 
-##### `props`<sup>Required</sup> <a name="props" id="tailscale-lambda-extension.TailscaleLambdaExtension.Initializer.parameter.props"></a>
+##### `props`<sup>Optional</sup> <a name="props" id="tailscale-lambda-extension.TailscaleLambdaExtension.Initializer.parameter.props"></a>
 
 - *Type:* <a href="#tailscale-lambda-extension.TailscaleLambdaExtensionProps">TailscaleLambdaExtensionProps</a>
 

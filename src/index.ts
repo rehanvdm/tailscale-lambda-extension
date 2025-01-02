@@ -17,11 +17,11 @@ export interface TailscaleLambdaExtensionProps {
 export class TailscaleLambdaExtension extends Construct {
   public readonly layer: lambda.LayerVersion;
 
-  constructor(scope: Construct, id: string, props: TailscaleLambdaExtensionProps) {
+  constructor(scope: Construct, id: string, props?: TailscaleLambdaExtensionProps) {
     super(scope, id);
 
     this.layer = new lambda.LayerVersion(scope, 'tailscale-extension', {
-      ...props.options,
+      ...props?.options,
       code: lambda.Code.fromAsset('tailscale-extension'),
       compatibleArchitectures: [lambda.Architecture.X86_64],
     });
