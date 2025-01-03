@@ -51,7 +51,6 @@ project.gitignore.addPatterns('*.js');
 project.gitignore.addPatterns('*.d.ts');
 project.gitignore.addPatterns('*.DS_Store');
 
-project.compileTask.exec('cp -r src/tailscale-extension/* lib/tailscale-extension');
-
-
+project.compileTask.exec('cd src/tailscale-extension && zip -r tailscale-extension.zip *');
+project.compileTask.exec('mv src/tailscale-extension/tailscale-extension.zip lib/tailscale-extension.zip');
 project.synth();

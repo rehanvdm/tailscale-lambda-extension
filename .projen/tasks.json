@@ -91,7 +91,10 @@
           "exec": "jsii --silence-warnings=reserved-word"
         },
         {
-          "exec": "cp -r src/tailscale-extension/* lib/tailscale-extension"
+          "exec": "cd src/tailscale-extension && zip -r tailscale-extension.zip *"
+        },
+        {
+          "exec": "mv src/tailscale-extension/tailscale-extension.zip lib/tailscale-extension.zip"
         }
       ]
     },
