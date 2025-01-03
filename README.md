@@ -172,12 +172,13 @@ fact that if you tag an Auth Key, then that Auth Key will not expire. Create a t
 ### Auth Keys
 
 Create a new Key on Tailscale:
-1. Go to your Tailscale network: https://login.tailscale.com/admin/machines
-2. Under Machines, click "Add device" then "Linux server".
-3. Select the tag `tag:awslambda`.
+1. Go to your Tailscale network, Settings, Keys https://login.tailscale.com/admin/settings/keys
+2. Click "Generate auth key...".
+3. Select `Reusable`
 4. Select `Ephemeral`
-5. Select `Reusable`
-6. Click on "Generate install script" and copy the Auth Key.
+5. Select `Tags` then Add the `tag:awslambda` tag.
+6. Click on "Generate key" and copy the Auth Key to your Tailscale AWS Secrets Manager Secret (create it manually if it
+   does not exist, then place the Secret name in the `TS_SECRET_API_KEY` environment variable).
 
 ## Compatibility
 - Compatible with ALL AWS Lambda runtimes running on Amazon Linux 2023
@@ -187,7 +188,7 @@ Create a new Key on Tailscale:
 - The IP address of the Tailscale target must be used, Domain Name resolution is not set up. This is not too much of a 
   limitation/risk as the IP address of the target server can be changed from the Tailscale Admin Console if need be.
 - The Layer adds about 50MB to the Lambda package size, most of which is the Tailscale binaries.
-- Expect a 2-3 second addition to your cold start time due to the Tailscale process starting up.
+- Expect a 5-10 second addition to your cold start time due to the Tailscale process starting up.
 
 ## Implementation Details
 The extension is build using the following steps:
