@@ -1,4 +1,3 @@
-import * as path from 'path';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 
@@ -23,7 +22,7 @@ export class TailscaleLambdaExtension extends Construct {
 
     this.layer = new lambda.LayerVersion(scope, 'tailscale-extension', {
       ...props?.options,
-      code: lambda.Code.fromAsset(path.join(__dirname, 'tailscale-extension/extensions')),
+      code: lambda.Code.fromAsset('tailscale-extension'),
       compatibleArchitectures: [lambda.Architecture.X86_64],
     });
 
