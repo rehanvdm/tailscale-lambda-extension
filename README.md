@@ -1,8 +1,5 @@
 # Tailscale Lambda Extension
 
-> [!WARNING]  
-> WIP, not yet published to NPM or PyPi and tested end to end.
-
 [![npm version](https://badge.fury.io/js/tailscale-lambda-extension.svg)](https://badge.fury.io/js/tailscale-lambda-extension)
 [![PyPI version](https://badge.fury.io/py/tailscale-lambda-extension.svg)](https://badge.fury.io/py/tailscale-lambda-extension)
 
