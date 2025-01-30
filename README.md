@@ -18,9 +18,15 @@ npm install tailscale-lambda-extension
 
 ## Usage
 
-The Lambda function using this layer requires the following Environment Variables:
-- `TS_SECRET_API_KEY` - The name of the AWS Secrets Manager secret that contains the pure text Tailscale API Key.
-- `TS_HOSTNAME` - The "Machine" name as shown in the Tailscale admin console that identifies the Lambda function.
+The Lambda function using this layer supports the following environment variables:
+
+Required:
+- `TS_SECRET_API_KEY` - The name of the AWS Secrets Manager secret that contains the Tailscale API Key.
+- `TS_HOSTNAME` - The "Machine" name as shown in the Tailscale admin console.
+
+Optional:
+- `TS_FUNCTION_DELAY` - The delay (in milliseconds) to apply prior to function invocation. (see [this issue](https://github.com/rehanvdm/tailscale-lambda-extension/issues/3) for more details)
+  - **Default: 0**
 
 ```typescript
 import * as cdk from 'aws-cdk-lib';

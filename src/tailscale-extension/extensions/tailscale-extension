@@ -92,4 +92,6 @@ do
     exit 0 # Exit if we receive a SHUTDOWN event
   fi
 
+  sleep "$(awk "BEGIN {print ${TS_FUNCTION_DELAY:-0} / 1000}")"
+
 done
