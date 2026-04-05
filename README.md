@@ -19,8 +19,12 @@ npm install tailscale-lambda-extension
 ## Usage
 
 The Lambda function using this layer requires the following Environment Variables:
-- `TS_SECRET_API_KEY` - The name of the AWS Secrets Manager secret that contains the pure text Tailscale API Key.
+- `TS_SECRET_API_KEY` - The name of the AWS Secrets Manager secret that contains the pure text Tailscale API Key (auth key or OAuth client key).
 - `TS_HOSTNAME` - The "Machine" name as shown in the Tailscale admin console that identifies the Lambda function.
+
+Optional Environment Variables:
+- `TS_ADVERTISE_TAGS` - Tags to advertise during `tailscale up` (e.g., `tag:lambda`). Required when using OAuth client keys instead of auth keys.
+- `TS_EXIT_NODE` - Exit node hostname or IP address. When set, all traffic is routed through the specified exit node. The extension waits up to 10 seconds for the exit node to come online.
 
 ```typescript
 import * as cdk from 'aws-cdk-lib';
@@ -46,6 +50,10 @@ export class MyStack extends cdk.Stack {
       environment: {
         TS_SECRET_API_KEY: "tailscale-api-key",
         TS_HOSTNAME: "my-lambda",
+        // Optional: advertise tags (required for OAuth client keys)
+        TS_ADVERTISE_TAGS: "tag:lambda",
+        // Optional: route all traffic through an exit node
+        TS_EXIT_NODE: "100.x.y.z",
       }
     });
 
@@ -165,6 +173,26 @@ fact that if you tag an Auth Key, then that Auth Key will not expire. Create a t
 }
 ```
 3. Save the file.
+
+### OAuth Client Keys (Recommended)
+
+OAuth client keys do not expire, eliminating the need for manual key rotation. They require `--advertise-tags` to be passed during `tailscale up`.
+
+1. Go to your Tailscale network, Settings, OAuth clients: https://login.tailscale.com/admin/settings/oauth
+2. Click "Generate OAuth client..."
+3. Grant the `Devices: Write` scope
+4. Add the `tag:awslambda` tag
+5. Copy the client secret to your AWS Secrets Manager secret
+6. Set the `TS_ADVERTISE_TAGS` environment variable on your Lambda to `tag:awslambda`
+
+### Exit Nodes
+
+To route all Lambda traffic through a Tailscale exit node:
+
+1. Ensure you have an [exit node](https://tailscale.com/kb/1103/exit-nodes) configured in your Tailscale network
+2. Set the `TS_EXIT_NODE` environment variable on your Lambda to the exit node's Tailscale IP (e.g., `100.x.y.z`)
+3. The extension will configure the exit node during initialization and wait up to 10 seconds for it to come online
+4. If the exit node does not come online in time, the extension logs a warning and continues without it
 
 ### Auth Keys
 

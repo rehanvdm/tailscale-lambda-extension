@@ -64,13 +64,42 @@ TAILSCALED_PID=$!
 echo "[${LAMBDA_EXTENSION_NAME}] TAILSCALED_PID: ${TAILSCALED_PID}" 1>&2;
 sleep 1 # TODO: Can we remove?
 
+# Build extra arguments for tailscale up
+EXTRA_ARGS=""
+if [ -n "${TS_ADVERTISE_TAGS:-}" ]; then
+  EXTRA_ARGS="${EXTRA_ARGS} --advertise-tags=${TS_ADVERTISE_TAGS}"
+  echo "[${LAMBDA_EXTENSION_NAME}] Advertising tags: ${TS_ADVERTISE_TAGS}" 1>&2;
+fi
+
 # Tailscale up
 echo "[${LAMBDA_EXTENSION_NAME}] Tailscale up..." 1>&2;
-until /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock up --authkey="${TS_KEY}" --hostname="${TS_HOSTNAME}"
+until /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock up --authkey="${TS_KEY}" --hostname="${TS_HOSTNAME}" ${EXTRA_ARGS}
 do
   sleep 0.1
 done
 sleep 1 # TODO: Can we remove?
+
+# Configure exit node if specified
+if [ -n "${TS_EXIT_NODE:-}" ]; then
+  echo "[${LAMBDA_EXTENSION_NAME}] Setting exit node: ${TS_EXIT_NODE}" 1>&2;
+  /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock set \
+    --exit-node="${TS_EXIT_NODE}"
+
+  # Wait for exit node to come online (max 10s)
+  EXIT_NODE_ONLINE=false
+  for i in $(seq 1 20); do
+    STATUS=$(/opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock status --json 2>/dev/null || echo "{}")
+    if echo "${STATUS}" | grep -q '"Online":true'; then
+      EXIT_NODE_ONLINE=true
+      echo "[${LAMBDA_EXTENSION_NAME}] Exit node online" 1>&2;
+      break
+    fi
+    sleep 0.5
+  done
+  if [ "${EXIT_NODE_ONLINE}" = "false" ]; then
+    echo "[${LAMBDA_EXTENSION_NAME}] WARNING: Exit node did not come online within 10s, continuing without exit node" 1>&2;
+  fi
+fi
 ### CUSTOM CODE END
 
 
