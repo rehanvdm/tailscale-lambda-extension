@@ -94,7 +94,13 @@ if [ -n "${TS_EXIT_NODE:-}" ]; then
     fi
   done
   if [ "${EXIT_NODE_ONLINE}" = "false" ]; then
-    echo "[${LAMBDA_EXTENSION_NAME}] WARNING: Exit node ${TS_EXIT_NODE} not reachable within 10s; exit-node preference remains configured" 1>&2;
+    EXIT_NODE_REQUIRED=$(echo "${TS_EXIT_NODE_REQUIRED:-false}" | tr '[:upper:]' '[:lower:]')
+    if [ "${EXIT_NODE_REQUIRED}" = "true" ]; then
+      echo "[${LAMBDA_EXTENSION_NAME}] ERROR: Exit node ${TS_EXIT_NODE} not reachable within 10s (TS_EXIT_NODE_REQUIRED=true). Verify the exit node is running and approved in the Tailscale admin console: https://login.tailscale.com/admin/machines" 1>&2;
+      exit 1
+    else
+      echo "[${LAMBDA_EXTENSION_NAME}] WARNING: Exit node ${TS_EXIT_NODE} not reachable within 10s; exit-node preference remains configured" 1>&2;
+    fi
   fi
 fi
 ### CUSTOM CODE END
