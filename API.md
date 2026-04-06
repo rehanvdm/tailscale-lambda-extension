@@ -18,9 +18,8 @@ Optional Environment Variables:
 - `TS_ADVERTISE_TAGS` - Comma-separated Tailscale ACL tags to advertise (e.g. `tag:lambda`).
 - `TS_EXIT_NODE` - Tailscale IP of the exit node to route traffic through.
 - `TS_EXIT_NODE_REQUIRED` - Set to `true` to fail if exit node is unreachable (default: `false`).
-- `TS_EXIT_NODE_PROBE_TIMEOUT` - curl connect+max timeout in seconds for SOCKS5 probe (default: `3`).
-- `TS_EXIT_NODE_PROBE_RETRIES` - Number of SOCKS5 probe attempts when waiting for exit node (default: `5`).
-- `TS_EXIT_NODE_PROBE_HOST` - HTTPS host to probe via SOCKS5 to verify exit node routing (default: `sso.garmin.com`).
+- `TS_EXIT_NODE_PING_TIMEOUT` - Per-ping timeout when waiting for exit node (default: `2000ms`).
+- `TS_EXIT_NODE_PING_RETRIES` - Number of ping attempts when waiting for exit node (default: `10`).
 
 #### Initializers <a name="Initializers" id="tailscale-lambda-extension.TailscaleLambdaExtension.Initializer"></a>
 

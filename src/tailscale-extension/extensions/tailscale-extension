@@ -83,41 +83,28 @@ do
 done
 sleep 1 # TODO: Can we remove?
 
-# Wait for the SOCKS5 proxy to route traffic through the exit node.
-# Uses curl --socks5 to probe an HTTP endpoint, which tests the actual traffic
-# path used by the Lambda handler — not just ICMP node-to-node reachability.
-# This avoids false negatives from Tailscale ACL rules that block direct pings
-# between tagged nodes while still allowing exit node routing.
-#
-# TS_EXIT_NODE_PROBE_TIMEOUT: curl connect+max timeout in seconds (default: 3)
-# TS_EXIT_NODE_PROBE_RETRIES: number of probe attempts (default: 5)
-# TS_EXIT_NODE_PROBE_HOST: HTTPS host to probe via SOCKS5 (default: sso.garmin.com)
+# Wait for exit node to become reachable if configured
+# TS_EXIT_NODE_PING_TIMEOUT: per-ping timeout (default: 2000ms)
+# TS_EXIT_NODE_PING_RETRIES: number of ping attempts (default: 10)
 if [ -n "${TS_EXIT_NODE:-}" ]; then
-  PROBE_TIMEOUT="${TS_EXIT_NODE_PROBE_TIMEOUT:-3}"
-  PROBE_RETRIES="${TS_EXIT_NODE_PROBE_RETRIES:-5}"
-  PROBE_HOST="${TS_EXIT_NODE_PROBE_HOST:-sso.garmin.com}"
-  echo "[${LAMBDA_EXTENSION_NAME}] Waiting for SOCKS5 proxy via exit node ${TS_EXIT_NODE} (host=${PROBE_HOST}, timeout=${PROBE_TIMEOUT}s, retries=${PROBE_RETRIES})..." 1>&2;
-  PROXY_READY=false
-  for i in $(seq 1 "${PROBE_RETRIES}"); do
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-      --socks5 "localhost:1055" \
-      --connect-timeout "${PROBE_TIMEOUT}" \
-      --max-time "${PROBE_TIMEOUT}" \
-      "https://${PROBE_HOST}" 2>/dev/null || echo "000")
-    if [ "${HTTP_STATUS}" != "000" ] && [ "${HTTP_STATUS}" -lt 500 ] 2>/dev/null; then
-      PROXY_READY=true
-      echo "[${LAMBDA_EXTENSION_NAME}] SOCKS5 proxy ready (HTTP ${HTTP_STATUS} from ${PROBE_HOST})" 1>&2;
+  EXIT_NODE_PING_TIMEOUT="${TS_EXIT_NODE_PING_TIMEOUT:-2000ms}"
+  EXIT_NODE_PING_RETRIES="${TS_EXIT_NODE_PING_RETRIES:-10}"
+  echo "[${LAMBDA_EXTENSION_NAME}] Waiting for exit node ${TS_EXIT_NODE} (timeout=${EXIT_NODE_PING_TIMEOUT}, retries=${EXIT_NODE_PING_RETRIES})..." 1>&2;
+  EXIT_NODE_ONLINE=false
+  for i in $(seq 1 "${EXIT_NODE_PING_RETRIES}"); do
+    if /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock ping --c 1 --timeout "${EXIT_NODE_PING_TIMEOUT}" "${TS_EXIT_NODE}" >/dev/null 2>&1; then
+      EXIT_NODE_ONLINE=true
+      echo "[${LAMBDA_EXTENSION_NAME}] Exit node ${TS_EXIT_NODE} is reachable" 1>&2;
       break
     fi
-    echo "[${LAMBDA_EXTENSION_NAME}] SOCKS5 probe attempt ${i}/${PROBE_RETRIES}: HTTP ${HTTP_STATUS}" 1>&2;
   done
-  if [ "${PROXY_READY}" = "false" ]; then
+  if [ "${EXIT_NODE_ONLINE}" = "false" ]; then
     EXIT_NODE_REQUIRED=$(echo "${TS_EXIT_NODE_REQUIRED:-false}" | tr '[:upper:]' '[:lower:]')
     if [ "${EXIT_NODE_REQUIRED}" = "true" ]; then
-      echo "[${LAMBDA_EXTENSION_NAME}] ERROR: SOCKS5 proxy not ready after ${PROBE_RETRIES} attempts (TS_EXIT_NODE_REQUIRED=true). Verify the exit node is running: https://login.tailscale.com/admin/machines" 1>&2;
+      echo "[${LAMBDA_EXTENSION_NAME}] ERROR: Exit node ${TS_EXIT_NODE} not reachable (TS_EXIT_NODE_REQUIRED=true). Verify the exit node is running and approved in the Tailscale admin console: https://login.tailscale.com/admin/machines" 1>&2;
       exit 1
     else
-      echo "[${LAMBDA_EXTENSION_NAME}] WARNING: SOCKS5 proxy not ready after ${PROBE_RETRIES} attempts; exit-node preference remains configured" 1>&2;
+      echo "[${LAMBDA_EXTENSION_NAME}] WARNING: Exit node ${TS_EXIT_NODE} not reachable; exit-node preference remains configured" 1>&2;
     fi
   fi
 fi
