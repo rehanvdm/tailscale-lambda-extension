@@ -83,20 +83,18 @@ do
 done
 sleep 1 # TODO: Can we remove?
 
-# Wait for exit node to come online if configured
+# Wait for exit node to become reachable if configured (timeout: ~10s)
 if [ -n "${TS_EXIT_NODE:-}" ]; then
   EXIT_NODE_ONLINE=false
   for i in $(seq 1 20); do
-    STATUS=$(/opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock status --json 2>/dev/null || echo "{}")
-    if echo "${STATUS}" | grep -q '"Online":true'; then
+    if /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock ping --c 1 --timeout 500ms "${TS_EXIT_NODE}" >/dev/null 2>&1; then
       EXIT_NODE_ONLINE=true
-      echo "[${LAMBDA_EXTENSION_NAME}] Exit node online" 1>&2;
+      echo "[${LAMBDA_EXTENSION_NAME}] Exit node ${TS_EXIT_NODE} is reachable" 1>&2;
       break
     fi
-    sleep 0.5
   done
   if [ "${EXIT_NODE_ONLINE}" = "false" ]; then
-    echo "[${LAMBDA_EXTENSION_NAME}] WARNING: Exit node did not come online within 10s, continuing without exit node" 1>&2;
+    echo "[${LAMBDA_EXTENSION_NAME}] WARNING: Exit node ${TS_EXIT_NODE} not reachable within 10s; exit-node preference remains configured" 1>&2;
   fi
 fi
 ### CUSTOM CODE END
