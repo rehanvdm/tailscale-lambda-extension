@@ -24,7 +24,8 @@ The Lambda function using this layer requires the following Environment Variable
 
 Optional Environment Variables:
 - `TS_ADVERTISE_TAGS` - Tags to advertise during `tailscale up` (e.g., `tag:lambda`). Required when using OAuth client keys instead of auth keys.
-- `TS_EXIT_NODE` - Exit node hostname or IP address. When set, all traffic is routed through the specified exit node. The extension waits up to 10 seconds for the exit node to come online.
+- `TS_EXIT_NODE` - Exit node hostname or IP address. When set, internet-bound traffic is routed through the specified exit node. The extension waits up to 10 seconds for the exit node to become reachable.
+- `TS_EXIT_NODE_REQUIRED` - Set to `true` to abort the extension if the exit node is not reachable within 10 seconds (only the literal value `true` is recognized, case-insensitive). Defaults to `false` (warn and continue).
 
 ```typescript
 import * as cdk from 'aws-cdk-lib';
@@ -52,7 +53,7 @@ export class MyStack extends cdk.Stack {
         TS_HOSTNAME: "my-lambda",
         // Optional: advertise tags (required for OAuth client keys)
         TS_ADVERTISE_TAGS: "tag:lambda",
-        // Optional: route all traffic through an exit node
+        // Optional: route internet-bound traffic through an exit node
         TS_EXIT_NODE: "100.x.y.z",
       }
     });
@@ -187,12 +188,13 @@ OAuth client keys do not expire, eliminating the need for manual key rotation. T
 
 ### Exit Nodes
 
-To route all Lambda traffic through a Tailscale exit node:
+To route Lambda internet-bound traffic through a Tailscale exit node:
 
 1. Ensure you have an [exit node](https://tailscale.com/kb/1103/exit-nodes) configured in your Tailscale network
 2. Set the `TS_EXIT_NODE` environment variable on your Lambda to the exit node's Tailscale IP (e.g., `100.x.y.z`)
-3. The extension will configure the exit node during initialization and wait up to 10 seconds for it to come online
-4. If the exit node does not come online in time, the extension logs a warning and continues without it
+3. The extension will configure the exit node during initialization and wait up to 10 seconds for it to become reachable
+4. By default, if the exit node is not reachable in time, the extension logs a warning and continues (fail-open)
+5. Set `TS_EXIT_NODE_REQUIRED=true` to abort the extension if the exit node is not reachable (fail-closed) — recommended when exit node routing is critical (e.g., residential IP requirement)
 
 ### Auth Keys
 
