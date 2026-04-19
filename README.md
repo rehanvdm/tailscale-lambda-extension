@@ -195,6 +195,10 @@ The extension is build using the following steps:
 4. Starts the Tailscale process as an External Extension, allowing the main Runtime process to communicate with the
    Tailscale process over a local SOCKS5 proxy on port 1055.
 
+## Tailscale Version
+
+The current version is v1.96.4
+
 ## Resources used
 Credit to the following resources for providing the necessary information to build this extension:
 - https://tailscale.com/kb/1113/aws-lambda - Only shows how to use with a docker image Lambda, not extensio

@@ -91,7 +91,7 @@
           "exec": "jsii --silence-warnings=reserved-word"
         },
         {
-          "exec": "cd src/tailscale-extension && zip -r tailscale-extension.zip *"
+          "exec": "cd src/tailscale-extension && find . -name \".DS_Store\" -delete && zip -r tailscale-extension.zip * "
         },
         {
           "exec": "mv src/tailscale-extension/tailscale-extension.zip lib/tailscale-extension.zip"
@@ -132,7 +132,8 @@
       "name": "eslint",
       "description": "Runs eslint against the codebase",
       "env": {
-        "ESLINT_USE_FLAT_CONFIG": "false"
+        "ESLINT_USE_FLAT_CONFIG": "false",
+        "NODE_NO_WARNINGS": "1"
       },
       "steps": [
         {
@@ -291,7 +292,7 @@
       },
       "steps": [
         {
-          "exec": "npx npm-check-updates@16 --upgrade --target=minor --peer --no-deprecated --dep=dev,peer,prod,optional --filter=@types/jest,@types/node,eslint-import-resolver-typescript,eslint-plugin-import,husky,jest,jsii-diff,jsii-pacmak,projen,ts-jest,ts-node,typescript"
+          "exec": "npx npm-check-updates@18 --upgrade --target=minor --peer --no-deprecated --dep=dev,peer,prod,optional --filter=@types/jest,@types/node,eslint-import-resolver-typescript,eslint-plugin-import,husky,jest,jsii-diff,jsii-pacmak,projen,ts-jest,ts-node,typescript"
         },
         {
           "exec": "npm install"

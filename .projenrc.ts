@@ -4,9 +4,9 @@ import { ArrowParens, TrailingComma } from 'projen/lib/javascript';
 const project = new awscdk.AwsCdkConstructLibrary({
   author: 'rehanvdm',
   authorAddress: 'rehan.vdm4+github-tailscale-lambda-extension@gmail.com',
-  cdkVersion: '2.150.0',
+  cdkVersion: '2.225.0',
   defaultReleaseBranch: 'main',
-  jsiiVersion: '~5.7.0',
+  jsiiVersion: '5.9.36',
   name: 'tailscale-lambda-extension',
   packageManager: javascript.NodePackageManager.NPM,
   projenrcTs: true,
@@ -31,7 +31,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
       },
     },
   },
-  workflowNodeVersion: '20',
+  workflowNodeVersion: '24',
   // deps: [],                /* Runtime dependencies of this module. */
   // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
   devDeps: ['husky'], /* Build dependencies for this module. */
@@ -40,8 +40,8 @@ const project = new awscdk.AwsCdkConstructLibrary({
     module: 'tailscale_lambda_extension',
   },
 });
-project.package.addEngine('node', '~20.*');
-project.package.addEngine('npm', '~10.*');
+project.package.addEngine('node', '~24.*');
+project.package.addEngine('npm', '~11.*');
 
 // Only run husky if not in CI, in the post install script
 project.package.setScript('prepare', 'if [ "$CI" = "true" ]; then echo "CI detected, not running husky"; else husky; fi');
@@ -51,6 +51,6 @@ project.gitignore.addPatterns('*.js');
 project.gitignore.addPatterns('*.d.ts');
 project.gitignore.addPatterns('*.DS_Store');
 
-project.compileTask.exec('cd src/tailscale-extension && zip -r tailscale-extension.zip *');
+project.compileTask.exec('cd src/tailscale-extension && find . -name ".DS_Store" -delete && zip -r tailscale-extension.zip * ');
 project.compileTask.exec('mv src/tailscale-extension/tailscale-extension.zip lib/tailscale-extension.zip');
 project.synth();
