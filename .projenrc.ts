@@ -35,6 +35,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
   // deps: [],                /* Runtime dependencies of this module. */
   // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
   devDeps: ['husky'], /* Build dependencies for this module. */
+  npmTrustedPublishing: true,
   publishToPypi: {
     distName: 'tailscale_lambda_extension',
     module: 'tailscale_lambda_extension',
