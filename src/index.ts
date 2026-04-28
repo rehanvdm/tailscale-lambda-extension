@@ -14,6 +14,13 @@ export interface TailscaleLambdaExtensionProps {
  * The Lambda function using this layer requires the following Environment Variables:
  * - `TS_SECRET_API_KEY` - The name of the AWS Secrets Manager secret that contains the Tailscale API Key.
  * - `TS_HOSTNAME` - The "Machine" name as shown in the Tailscale admin console.
+ *
+ * Optional Environment Variables:
+ * - `TS_ADVERTISE_TAGS` - Comma-separated Tailscale ACL tags to advertise (e.g. `tag:lambda`).
+ * - `TS_EXIT_NODE` - Tailscale IP of the exit node to route traffic through.
+ * - `TS_EXIT_NODE_REQUIRED` - Set to `true` to fail if exit node is unreachable (default: `false`).
+ * - `TS_EXIT_NODE_PING_TIMEOUT` - Per-ping timeout when waiting for exit node (default: `2000ms`).
+ * - `TS_EXIT_NODE_PING_RETRIES` - Number of ping attempts when waiting for exit node (default: `10`).
  */
 export class TailscaleLambdaExtension extends Construct {
   public readonly layer: lambda.LayerVersion;

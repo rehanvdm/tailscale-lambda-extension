@@ -19,8 +19,13 @@ npm install tailscale-lambda-extension
 ## Usage
 
 The Lambda function using this layer requires the following Environment Variables:
-- `TS_SECRET_API_KEY` - The name of the AWS Secrets Manager secret that contains the pure text Tailscale API Key.
+- `TS_SECRET_API_KEY` - The name of the AWS Secrets Manager secret that contains the pure text Tailscale API Key (auth key or OAuth client key).
 - `TS_HOSTNAME` - The "Machine" name as shown in the Tailscale admin console that identifies the Lambda function.
+
+Optional Environment Variables:
+- `TS_ADVERTISE_TAGS` - Tags to advertise during `tailscale up` (e.g., `tag:lambda`). Required when using OAuth client keys instead of auth keys.
+- `TS_EXIT_NODE` - Exit node hostname or IP address. When set, internet-bound traffic is routed through the specified exit node. The extension waits up to 10 seconds for the exit node to become reachable.
+- `TS_EXIT_NODE_REQUIRED` - Set to `true` to abort the extension if the exit node is not reachable within 10 seconds (only the literal value `true` is recognized, case-insensitive). Defaults to `false` (warn and continue).
 
 ```typescript
 import * as cdk from 'aws-cdk-lib';
@@ -46,6 +51,10 @@ export class MyStack extends cdk.Stack {
       environment: {
         TS_SECRET_API_KEY: "tailscale-api-key",
         TS_HOSTNAME: "my-lambda",
+        // Optional: advertise tags (required for OAuth client keys)
+        TS_ADVERTISE_TAGS: "tag:lambda",
+        // Optional: route internet-bound traffic through an exit node
+        TS_EXIT_NODE: "100.x.y.z",
       }
     });
 
@@ -165,6 +174,27 @@ fact that if you tag an Auth Key, then that Auth Key will not expire. Create a t
 }
 ```
 3. Save the file.
+
+### OAuth Client Keys (Recommended)
+
+OAuth client keys do not expire, eliminating the need for manual key rotation. They require `--advertise-tags` to be passed during `tailscale up`.
+
+1. Go to your Tailscale network, Settings, OAuth clients: https://login.tailscale.com/admin/settings/oauth
+2. Click "Generate OAuth client..."
+3. Grant the `Devices: Write` scope
+4. Add the `tag:awslambda` tag
+5. Copy the client secret to your AWS Secrets Manager secret
+6. Set the `TS_ADVERTISE_TAGS` environment variable on your Lambda to `tag:awslambda`
+
+### Exit Nodes
+
+To route Lambda internet-bound traffic through a Tailscale exit node:
+
+1. Ensure you have an [exit node](https://tailscale.com/kb/1103/exit-nodes) configured in your Tailscale network
+2. Set the `TS_EXIT_NODE` environment variable on your Lambda to the exit node's Tailscale IP (e.g., `100.x.y.z`)
+3. The extension will configure the exit node during initialization and wait up to 10 seconds for it to become reachable
+4. By default, if the exit node is not reachable in time, the extension logs a warning and continues (fail-open)
+5. Set `TS_EXIT_NODE_REQUIRED=true` to abort the extension if the exit node is not reachable (fail-closed) — recommended when exit node routing is critical (e.g., residential IP requirement)
 
 ### Auth Keys
 

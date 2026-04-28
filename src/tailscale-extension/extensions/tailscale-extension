@@ -64,13 +64,50 @@ TAILSCALED_PID=$!
 echo "[${LAMBDA_EXTENSION_NAME}] TAILSCALED_PID: ${TAILSCALED_PID}" 1>&2;
 sleep 1 # TODO: Can we remove?
 
-# Tailscale up
+# Build extra arguments for tailscale up
+EXTRA_ARGS=()
+if [ -n "${TS_ADVERTISE_TAGS:-}" ]; then
+  EXTRA_ARGS+=(--advertise-tags="${TS_ADVERTISE_TAGS}")
+  echo "[${LAMBDA_EXTENSION_NAME}] Advertising tags: ${TS_ADVERTISE_TAGS}" 1>&2;
+fi
+if [ -n "${TS_EXIT_NODE:-}" ]; then
+  EXTRA_ARGS+=(--exit-node="${TS_EXIT_NODE}")
+  echo "[${LAMBDA_EXTENSION_NAME}] Exit node: ${TS_EXIT_NODE}" 1>&2;
+fi
+
+# Tailscale up (pass all flags together to avoid "requires mentioning all" error on retries)
 echo "[${LAMBDA_EXTENSION_NAME}] Tailscale up..." 1>&2;
-until /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock up --authkey="${TS_KEY}" --hostname="${TS_HOSTNAME}"
+until /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock up --authkey="${TS_KEY}" --hostname="${TS_HOSTNAME}" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
 do
   sleep 0.1
 done
 sleep 1 # TODO: Can we remove?
+
+# Wait for exit node to become reachable if configured
+# TS_EXIT_NODE_PING_TIMEOUT: per-ping timeout (default: 2000ms)
+# TS_EXIT_NODE_PING_RETRIES: number of ping attempts (default: 10)
+if [ -n "${TS_EXIT_NODE:-}" ]; then
+  EXIT_NODE_PING_TIMEOUT="${TS_EXIT_NODE_PING_TIMEOUT:-2000ms}"
+  EXIT_NODE_PING_RETRIES="${TS_EXIT_NODE_PING_RETRIES:-10}"
+  echo "[${LAMBDA_EXTENSION_NAME}] Waiting for exit node ${TS_EXIT_NODE} (timeout=${EXIT_NODE_PING_TIMEOUT}, retries=${EXIT_NODE_PING_RETRIES})..." 1>&2;
+  EXIT_NODE_ONLINE=false
+  for i in $(seq 1 "${EXIT_NODE_PING_RETRIES}"); do
+    if /opt/extensions/bin/tailscale --socket=/tmp/tailscale.sock ping --c 1 --timeout "${EXIT_NODE_PING_TIMEOUT}" "${TS_EXIT_NODE}" >/dev/null 2>&1; then
+      EXIT_NODE_ONLINE=true
+      echo "[${LAMBDA_EXTENSION_NAME}] Exit node ${TS_EXIT_NODE} is reachable" 1>&2;
+      break
+    fi
+  done
+  if [ "${EXIT_NODE_ONLINE}" = "false" ]; then
+    EXIT_NODE_REQUIRED=$(echo "${TS_EXIT_NODE_REQUIRED:-false}" | tr '[:upper:]' '[:lower:]')
+    if [ "${EXIT_NODE_REQUIRED}" = "true" ]; then
+      echo "[${LAMBDA_EXTENSION_NAME}] ERROR: Exit node ${TS_EXIT_NODE} not reachable (TS_EXIT_NODE_REQUIRED=true). Verify the exit node is running and approved in the Tailscale admin console: https://login.tailscale.com/admin/machines" 1>&2;
+      exit 1
+    else
+      echo "[${LAMBDA_EXTENSION_NAME}] WARNING: Exit node ${TS_EXIT_NODE} not reachable; exit-node preference remains configured" 1>&2;
+    fi
+  fi
+fi
 ### CUSTOM CODE END
 
 
