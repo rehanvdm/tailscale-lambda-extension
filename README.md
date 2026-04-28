@@ -23,7 +23,7 @@ The Lambda function using this layer requires the following Environment Variable
 - `TS_HOSTNAME` - The "Machine" name as shown in the Tailscale admin console that identifies the Lambda function.
 
 Optional Environment Variables:
-- `TS_ADVERTISE_TAGS` - Tags to advertise during `tailscale up` (e.g., `tag:lambda`). Required when using OAuth client keys instead of auth keys.
+- `TS_ADVERTISE_TAGS` - Tags to advertise during `tailscale up` (e.g., `tag:aws`). Required when using OAuth client keys instead of auth keys.
 - `TS_EXIT_NODE` - Exit node hostname or IP address. When set, internet-bound traffic is routed through the specified exit node. The extension waits up to 10 seconds for the exit node to become reachable.
 - `TS_EXIT_NODE_REQUIRED` - Set to `true` to abort the extension if the exit node is not reachable within 10 seconds (only the literal value `true` is recognized, case-insensitive). Defaults to `false` (warn and continue).
 
@@ -52,7 +52,7 @@ export class MyStack extends cdk.Stack {
         TS_SECRET_API_KEY: "tailscale-api-key",
         TS_HOSTNAME: "my-lambda",
         // Optional: advertise tags (required for OAuth client keys)
-        TS_ADVERTISE_TAGS: "tag:lambda",
+        TS_ADVERTISE_TAGS: "tag:aws",
         // Optional: route internet-bound traffic through an exit node
         TS_EXIT_NODE: "100.x.y.z",
       }
@@ -67,6 +67,11 @@ export class MyStack extends cdk.Stack {
 ```
 
 ## Accessing your Tailscale Network within the Lambda
+
+> [!TIP]  
+> For ease of use, the [Tailscale Lambda Proxy ](https://github.com/rehanvdm/tailscale-lambda-proxy)should be used. API calls can be made to the proxy, which implements
+> the SOCKS5 functionality, so you don’t need to worry about low level implementation details. This section
+> briefly shows how to do it manually.
 
 The Tailscale process exposes a local SOCKS5 proxy on port 1055. You can use this proxy in your AWS runtime to route 
 traffic through your Tailscale network. Here is an example of how it can be done with the `socks-proxy-agent` package 
@@ -168,7 +173,7 @@ fact that if you tag an Auth Key, then that Auth Key will not expire. Create a t
 {
     ...
 	"tagOwners": {
-		"tag:awslambda": [],
+		"tag:aws": [],
 	},
     ...
 }
@@ -179,12 +184,12 @@ fact that if you tag an Auth Key, then that Auth Key will not expire. Create a t
 
 OAuth client keys do not expire, eliminating the need for manual key rotation. They require `--advertise-tags` to be passed during `tailscale up`.
 
-1. Go to your Tailscale network, Settings, OAuth clients: https://login.tailscale.com/admin/settings/oauth
+1. Go to your Tailscale network, Settings, OAuth clients: https://login.tailscale.com/admin/settings/trust-credentials
 2. Click "Generate OAuth client..."
-3. Grant the `Devices: Write` scope
-4. Add the `tag:awslambda` tag
+3. Grant the `devices:core`, `auth_keys` scopes
+4. Add the `tag:aws` tag
 5. Copy the client secret to your AWS Secrets Manager secret
-6. Set the `TS_ADVERTISE_TAGS` environment variable on your Lambda to `tag:awslambda`
+6. Set the `TS_ADVERTISE_TAGS` environment variable on your Lambda to `tag:aws`
 
 ### Exit Nodes
 
@@ -196,14 +201,23 @@ To route Lambda internet-bound traffic through a Tailscale exit node:
 4. By default, if the exit node is not reachable in time, the extension logs a warning and continues (fail-open)
 5. Set `TS_EXIT_NODE_REQUIRED=true` to abort the extension if the exit node is not reachable (fail-closed) — recommended when exit node routing is critical (e.g., residential IP requirement)
 
+> [!NOTE]  
+> Troubleshooting:
+> - Ensure that the exit node has been Allowed. This is a manual step that needs to be done on the Tailscale Admin Console.
+> - Ensure that your ACL routing rules include `"dst": ["autogroup:intenet"]` to allow discovery and routing through the exit node.
+
 ### Auth Keys
+
+> [!WARNING]  
+> Auth Keys always expire. The maximum duration can be 90 days, so they need constant rotation. If you do not want to 
+> worry about rotating keys, use OAuth Client Keys instead.
 
 Create a new Key on Tailscale:
 1. Go to your Tailscale network, Settings, Keys https://login.tailscale.com/admin/settings/keys
 2. Click "Generate auth key...".
 3. Select `Reusable`
 4. Select `Ephemeral`
-5. Select `Tags` then Add the `tag:awslambda` tag.
+5. Select `Tags` then Add the `tag:aws` tag.
 6. Click on "Generate key" and copy the Auth Key to your Tailscale AWS Secrets Manager Secret (create it manually if it
    does not exist, then place the Secret name in the `TS_SECRET_API_KEY` environment variable).
 
